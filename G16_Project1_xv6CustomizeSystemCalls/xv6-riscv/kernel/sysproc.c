@@ -7,6 +7,17 @@
 #include "proc.h"
 #include "vm.h"
 
+#define NKMUTEX 16
+
+struct kmutex_entry {
+  int used;
+  int locked;
+  int owner_pid;
+};
+
+extern struct spinlock wait_lock;
+static struct kmutex_entry kmutex_table[NKMUTEX];
+
 uint64
 sys_exit(void)
 {
@@ -106,4 +117,87 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_mutex_create(void)
+{
+  int i;
+
+  acquire(&wait_lock);
+  for(i = 0; i < NKMUTEX; i++) {
+    if(kmutex_table[i].used == 0) {
+      kmutex_table[i].used = 1;
+      kmutex_table[i].locked = 0;
+      kmutex_table[i].owner_pid = -1;
+      release(&wait_lock);
+      return i;
+    }
+  }
+  release(&wait_lock);
+  return -1;
+}
+
+uint64
+sys_mutex_lock(void)
+{
+  int id;
+  struct proc *p;
+
+  argint(0, &id);
+  if(id < 0 || id >= NKMUTEX)
+    return -1;
+
+  p = myproc();
+  acquire(&wait_lock);
+  while(1) {
+    if(kmutex_table[id].used == 0) {
+      release(&wait_lock);
+      return -1;
+    }
+    if(kmutex_table[id].locked == 0) {
+      kmutex_table[id].locked = 1;
+      kmutex_table[id].owner_pid = p->pid;
+      release(&wait_lock);
+      return 0;
+    }
+    if(kmutex_table[id].owner_pid == p->pid) {
+      // Non-recursive mutex: same owner cannot lock twice.
+      release(&wait_lock);
+      return -1;
+    }
+    sleep(&kmutex_table[id], &wait_lock);
+    if(killed(p)) {
+      release(&wait_lock);
+      return -1;
+    }
+  }
+}
+
+uint64
+sys_mutex_unlock(void)
+{
+  int id;
+  struct proc *p;
+
+  argint(0, &id);
+  if(id < 0 || id >= NKMUTEX)
+    return -1;
+
+  p = myproc();
+  acquire(&wait_lock);
+  if(kmutex_table[id].used == 0 || kmutex_table[id].locked == 0) {
+    release(&wait_lock);
+    return -1;
+  }
+  if(kmutex_table[id].owner_pid != p->pid) {
+    release(&wait_lock);
+    return -1;
+  }
+
+  kmutex_table[id].locked = 0;
+  kmutex_table[id].owner_pid = -1;
+  wakeup(&kmutex_table[id]);
+  release(&wait_lock);
+  return 0;
 }
