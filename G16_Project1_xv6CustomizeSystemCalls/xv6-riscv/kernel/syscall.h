@@ -25,3 +25,4 @@
 #define SYS_mutex_unlock 24
 #define SYS_freeze 25
 #define SYS_thaw   26
+#define SYS_msgget 27 //for getting/creating a message queue 

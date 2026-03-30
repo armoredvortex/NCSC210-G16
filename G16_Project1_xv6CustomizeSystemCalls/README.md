@@ -38,3 +38,19 @@
 2. make qemu
 3. Run in xv6 shell: mutexdemo
 4. Run in xv6 shell: freezethawdemo
+
+
+## Feature 3 
+- **Feature**: Message queue based IPC system 
+- **Syscalls**:  msgget(key)
+- **msgget**
+    - ***input params***: integer key `(eg. msgget(123))`
+    - ***returns***: message queue id 
+    - ***Kenel data structures created***: 
+        - message (struct with msgdata,type) ,msgq(message queue struct with array of messages and other required data) 
+        > for more information see [msg.c](xv6-riscv/kernel/msg.c) and [msg.h](xv6-riscv/kernel/msg.h)
+    - ***description***:
+        msgget allows processes to get/create a message queue with a integer key which allows inter process communication. if a queue with the given key already exists, it returns the existing queue id. otherwise assigns a new queue entry in the kernel
+        the implementation uses spinlock`(msglock)` to avoid race conditions when multiple processes attempt to get/create queues concurrently
+    
+

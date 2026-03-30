@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "msg.h"  // for message queues 
 
 #define NKMUTEX 16
 
@@ -15,6 +16,8 @@ struct kmutex_entry {
   int owner_pid;
 };
 
+extern struct msgqueue msgq[MAX_Q]; // array of queues (defined in msg.c)
+extern struct spinlock msgqlock; 
 extern struct spinlock wait_lock;
 static struct kmutex_entry kmutex_table[NKMUTEX];
 
@@ -218,4 +221,46 @@ sys_thaw(void)
 
   argint(0, &pid);
   return kthaw(pid);
+}
+
+uint64  
+sys_msgget(void){
+
+  //get the key from user buffer
+  int key; 
+  argint(0, &key); 
+
+  //acquire lock 
+  acquire(&msgqlock); 
+
+  //1. check if msgque with key exists 
+  for(int i=0; i<MAX_Q; i++){
+    if(msgq[i].used && msgq[i].key==key){
+      
+      //release lock 
+      release(&msgqlock);
+      return i;
+    }
+  }
+
+  //2. create a new msgque with key
+  for(int i=0; i<MAX_Q; i++){
+    if(!msgq[i].used){
+      msgq[i].used = 1; 
+      msgq[i].key = key;
+      msgq[i].front = 0;
+      msgq[i].rear = 0;
+      msgq[i].count = 0;
+
+      //release lock 
+      release(&msgqlock);
+      return i;
+    }
+  }
+
+  //release lock 
+  release(&msgqlock); 
+  
+  //3. no free space found in msgque 
+  return -1;
 }
