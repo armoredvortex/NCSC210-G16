@@ -1,5 +1,6 @@
 #define MAX_MSG 10 // max number of messages
 #define MAX_Q 10   // max number of queues
+#define MAX_MSG_LEN 128 // max length of message
 
 struct message {
     int  type;

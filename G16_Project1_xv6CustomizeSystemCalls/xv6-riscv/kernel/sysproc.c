@@ -236,7 +236,7 @@ sys_msgget(void){
   //1. check if msgque with key exists 
   for(int i=0; i<MAX_Q; i++){
     if(msgq[i].used && msgq[i].key==key){
-      
+
       //release lock 
       release(&msgqlock);
       return i;
@@ -263,4 +263,58 @@ sys_msgget(void){
   
   //3. no free space found in msgque 
   return -1;
+}
+
+uint64 
+sys_sendmsg(void){
+
+  int quid, type, len;
+  uint64 msgptr;
+  struct msgqueue *q;
+
+  //get the arguments from user buffer
+  argint(0, &quid);
+  argint(1, &type); 
+  argaddr(2, &msgptr); 
+  argint(3, &len);
+
+    //acquire lock 
+  acquire(&msgqlock);
+
+  //validate queue id 
+  if(quid < 0 || quid >= MAX_Q || !msgq[quid].used){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  //validate msg len
+  if(len <= 0 || len > MAX_MSG_LEN){
+    release(&msgqlock);
+    return -1;
+  }
+
+  q = &msgq[quid]; 
+
+  //check if queue is full 
+  if(q->count == MAX_MSG){
+    //queue is full can't send message
+    release(&msgqlock);
+    return -1;
+  }
+
+  struct message *m = &q->msg[q->rear];
+  m->type = type; 
+  
+  //copy data from user buffer to kernel buffer 
+  if(copyin(myproc()->pagetable, m->data, msgptr, len) < 0){
+    release(&msgqlock);
+    return -1;
+  }
+
+  q->rear = (q->rear + 1) % MAX_MSG; //circular queue, rear = free slot
+  q->count++;   //no.of messages in queue
+
+  //release lock
+  release(&msgqlock);
+  return 0;
 }
