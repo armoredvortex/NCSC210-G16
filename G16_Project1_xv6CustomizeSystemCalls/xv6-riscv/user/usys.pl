@@ -49,3 +49,4 @@ entry("pause");
 entry("uptime");
 entry("msgget");
 entry("sendmsg");
+entry("recvmsg");

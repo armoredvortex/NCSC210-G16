@@ -49,8 +49,8 @@
     - ***input params***: 
         - integer key `(eg. msgget(123))`
     - ***returns***: 
-        - on success  message queue id `int` 
-        - on failure  `-1`
+        - success  message queue id `int` 
+        - failure  `-1`
     - ***Kernel data structures created***: 
         - message (struct with data,type)
         - msgq (message queue struct with array of messages and other required data) 
@@ -63,7 +63,7 @@
         - every queue contains a variable `used` to know whether queue is being allocated or not
         - `key` is used to identify the queue uniquely which is stored in each queue 
         - when msgget is called first unused queue is allocated and it's `id` (array idx) is returned 
-        - spinlock `msglock` is used to prevent race conditions
+        - spinlock `msgqlock` is used to prevent race conditions
 -  **sendmsg**
     - ***input params***: 
         - queue id `int` 
@@ -71,15 +71,41 @@
         - message buffer `char*`
         - message length `int`
     - ***returns***: 
-        - 0 `success`
-        - -1 `failure`
+        -  0    `success`
+        - -1    `failure`
     - ***description***: 
-        sendmsg allows a user program to send a message (byte buffer) to a message queue with id quid. the receiving program must call recvmsg on the same queue to retrieve the message
+        `sendmsg` allows a user program to send a message (byte buffer) to a message queue with id quid. the receiving program must call recvmsg on the same queue to retrieve the message
     ***implementation details***: 
-        - messages are stored in a circular queue inside the kernel
+        - messages are stored in a fixed size array and `valid` flag is used to track active entries
         - uses copyin to safely transfer data from user space to kernel space 
-        - uses spinlock `msglock` to enforce mutual exclusion while modifying queue state
+        - uses spinlock `msgqlock` to enforce mutual exclusion while modifying queue state
         - returns error `-1` if queue is full or invalid queue id or message length exceed the limit (128 bytes)
         > max msg len: 128 bytes
+- **recvmsg**
+    - ***Input params***:
+        - queue id `int`
+        - type `int`
+        - user buffer (where msg should be copied) `char*`
+        - buffer len `int`
+    - ***returns***:
+        - success `copied msg len`
+        - failure `-1`
+    - ***description***: 
+        - `recvmsg` allows a user program to retrieve the msg of desired type from the msg queue.
+        user program must provide the queue id of the queue it want to receive message from.
+        the implementation is non-blocking (returns right away -1 if no message of desired type found)
+    - ***implementation details***: 
+        - `recvmsg` is `non-blocking` (returns -1 right away if no message of desired type found)
+        -  `copyout` is used to safely copy from kernel buffer to user buffer 
+        - uses `valid` variable to track whether message is active
+        - linearly searches the queue with provided quid for the desired message type
+        - returns the first message found of the requested message type
+        
+## How To Run Demo
+1. cd xv6-riscv
+2. make clean && make qemu
+3. Run in xv6 shell: msgdemo
+
+        
     
 

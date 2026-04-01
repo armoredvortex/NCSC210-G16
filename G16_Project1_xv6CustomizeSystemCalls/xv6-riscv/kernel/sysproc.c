@@ -248,8 +248,6 @@ sys_msgget(void){
     if(!msgq[i].used){
       msgq[i].used = 1; 
       msgq[i].key = key;
-      msgq[i].front = 0;
-      msgq[i].rear = 0;
       msgq[i].count = 0;
 
       //release lock 
@@ -302,8 +300,21 @@ sys_sendmsg(void){
     return -1;
   }
 
-  struct message *m = &q->msg[q->rear];
+  int idx = -1; 
+  for(int i=0; i<MAX_MSG; i++){
+    if(!q->msg[i].valid){
+      idx = i; break;
+    }
+  }
+
+  if(idx == -1){
+    release(&msgqlock);
+    return -1;
+  }
+
+  struct message *m = &q->msg[idx];
   m->type = type; 
+  m->len = len;
   
   //copy data from user buffer to kernel buffer 
   if(copyin(myproc()->pagetable, m->data, msgptr, len) < 0){
@@ -311,10 +322,68 @@ sys_sendmsg(void){
     return -1;
   }
 
-  q->rear = (q->rear + 1) % MAX_MSG; //circular queue, rear = free slot
-  q->count++;   //no.of messages in queue
+   m->valid = 1;  //makr message valid only after copyin is successful
+   q->count++;   //no.of messages in queue
 
   //release lock
   release(&msgqlock);
   return 0;
+}
+
+uint64 
+sys_recvmsg(void){
+  int quid, type;
+  int bufflen; //length of user buffer (in bytes)
+  uint64 msgptr; //user buffer 
+  struct msgqueue *q; 
+  struct message *m; 
+
+  //get the arguments from user buffer 
+  argint(0, &quid);
+  argint(1, &type); 
+  argaddr(2, &msgptr);
+  argint(3, &bufflen);
+
+  //acquire lock 
+  acquire(&msgqlock); 
+
+  //validate queue id
+  if(quid < 0 || quid >= MAX_Q || !msgq[quid].used){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  q = &msgq[quid];  //get the queue
+
+  //check for the required message type
+  int idx = -1; 
+  for(int i=0; i<MAX_MSG; i++){
+    if(q->msg[i].valid && q->msg[i].type == type){
+      idx = i; break;
+    }
+  }
+  
+  if(idx == -1){
+    //no message found with the required type
+    //release lock 
+    release(&msgqlock);
+    return -1;
+  }
+
+  m = &q->msg[idx]; 
+  int copylen = m->len < bufflen ? m->len : bufflen; //length to be copied to user buffer
+
+  //copy data from kernel buffer(m->data) to user buffer(msgptr)
+  if(copyout(myproc()->pagetable, msgptr, m->data, copylen) < 0){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  m->valid = 0; //mark message as invalid
+  q->count--; //decrement no.of messages in queue
+
+
+  //release lock 
+  release(&msgqlock);
+  return copylen;
 }

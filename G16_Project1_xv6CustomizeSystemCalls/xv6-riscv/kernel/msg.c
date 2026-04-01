@@ -15,8 +15,13 @@ void msginit() {
     initlock(&msgqlock, "msgqlock");
     for (int i = 0; i < MAX_Q; i++) {
         msgq[i].used  = 0;
-        msgq[i].front = 0;
-        msgq[i].rear  = 0;
         msgq[i].count = 0;
+        // msgq[i].front = 0;
+        // msgq[i].rear  = 0;
+        for(int j=0; j<MAX_MSG; j++){
+            msgq[i].msg[j].valid = 0;
+            msgq[i].msg[j].len = 0;
+            msgq[i].msg[j].type = 0;
+        }
     }
 }

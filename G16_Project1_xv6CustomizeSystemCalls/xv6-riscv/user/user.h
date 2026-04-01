@@ -29,8 +29,10 @@ int thaw(int);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
-int msgget(int);    // for getting/creating a message queue
-int sendmsg(int, int, char*, int); // for sending a message
+int msgget(int key);    // for getting/creating a message queue
+int sendmsg(int quid, int type, char* msg, int msglen); // for sending a message
+int recvmsg(int quid, int type, char* buffer, int bufflen); // for receiving a message
+
 
 // ulib.c
 int stat(const char*, struct stat*);

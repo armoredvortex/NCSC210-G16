@@ -5,6 +5,8 @@
 struct message {
     int  type;
     char data[128];
+    int len;
+    int valid;
 };
 
 struct msgqueue {
@@ -12,9 +14,12 @@ struct msgqueue {
     int used;
 
     struct message msg[MAX_MSG]; // array of messages
-    int            front;        // front idx of queue
-    int            rear;         // rear idx of queue
-    int            count;        // no.of messages in queue
+    int count;        // no.of messages in queue
+
+    // message queue changed circular queue to linear arr implementation 
+    // int            front;        // front idx of queue
+    // int            rear;         // rear idx of queue
+    
 };
 
 void msginit(); // for msg queues initialization (definition in msg.c)
