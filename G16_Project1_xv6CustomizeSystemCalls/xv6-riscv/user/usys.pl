@@ -47,3 +47,6 @@ entry("thaw");
 entry("sbrk");
 entry("pause");
 entry("uptime");
+entry("msgget");
+entry("sendmsg");
+entry("recvmsg");

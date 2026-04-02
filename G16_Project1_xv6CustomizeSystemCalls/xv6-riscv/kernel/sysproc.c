@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "msg.h"  // for message queues 
 
 #define NKMUTEX 16
 
@@ -15,6 +16,8 @@ struct kmutex_entry {
   int owner_pid;
 };
 
+extern struct msgqueue msgq[MAX_Q]; // array of queues (defined in msg.c)
+extern struct spinlock msgqlock; 
 extern struct spinlock wait_lock;
 static struct kmutex_entry kmutex_table[NKMUTEX];
 
@@ -218,4 +221,169 @@ sys_thaw(void)
 
   argint(0, &pid);
   return kthaw(pid);
+}
+
+uint64  
+sys_msgget(void){
+
+  //get the key from user buffer
+  int key; 
+  argint(0, &key); 
+
+  //acquire lock 
+  acquire(&msgqlock); 
+
+  //1. check if msgque with key exists 
+  for(int i=0; i<MAX_Q; i++){
+    if(msgq[i].used && msgq[i].key==key){
+
+      //release lock 
+      release(&msgqlock);
+      return i;
+    }
+  }
+
+  //2. create a new msgque with key
+  for(int i=0; i<MAX_Q; i++){
+    if(!msgq[i].used){
+      msgq[i].used = 1; 
+      msgq[i].key = key;
+      msgq[i].count = 0;
+
+      //release lock 
+      release(&msgqlock);
+      return i;
+    }
+  }
+
+  //release lock 
+  release(&msgqlock); 
+  
+  //3. no free space found in msgque 
+  return -1;
+}
+
+uint64 
+sys_sendmsg(void){
+
+  int quid, type, len;
+  uint64 msgptr;
+  struct msgqueue *q;
+
+  //get the arguments from user buffer
+  argint(0, &quid);
+  argint(1, &type); 
+  argaddr(2, &msgptr); 
+  argint(3, &len);
+
+    //acquire lock 
+  acquire(&msgqlock);
+
+  //validate queue id 
+  if(quid < 0 || quid >= MAX_Q || !msgq[quid].used){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  //validate msg len
+  if(len <= 0 || len > MAX_MSG_LEN){
+    release(&msgqlock);
+    return -1;
+  }
+
+  q = &msgq[quid]; 
+
+  //check if queue is full 
+  if(q->count == MAX_MSG){
+    //queue is full can't send message
+    release(&msgqlock);
+    return -1;
+  }
+
+  int idx = -1; 
+  for(int i=0; i<MAX_MSG; i++){
+    if(!q->msg[i].valid){
+      idx = i; break;
+    }
+  }
+
+  if(idx == -1){
+    release(&msgqlock);
+    return -1;
+  }
+
+  struct message *m = &q->msg[idx];
+  m->type = type; 
+  m->len = len;
+  
+  //copy data from user buffer to kernel buffer 
+  if(copyin(myproc()->pagetable, m->data, msgptr, len) < 0){
+    release(&msgqlock);
+    return -1;
+  }
+
+   m->valid = 1;  //makr message valid only after copyin is successful
+   q->count++;   //no.of messages in queue
+
+  //release lock
+  release(&msgqlock);
+  return 0;
+}
+
+uint64 
+sys_recvmsg(void){
+  int quid, type;
+  int bufflen; //length of user buffer (in bytes)
+  uint64 msgptr; //user buffer 
+  struct msgqueue *q; 
+  struct message *m; 
+
+  //get the arguments from user buffer 
+  argint(0, &quid);
+  argint(1, &type); 
+  argaddr(2, &msgptr);
+  argint(3, &bufflen);
+
+  //acquire lock 
+  acquire(&msgqlock); 
+
+  //validate queue id
+  if(quid < 0 || quid >= MAX_Q || !msgq[quid].used){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  q = &msgq[quid];  //get the queue
+
+  //check for the required message type
+  int idx = -1; 
+  for(int i=0; i<MAX_MSG; i++){
+    if(q->msg[i].valid && q->msg[i].type == type){
+      idx = i; break;
+    }
+  }
+  
+  if(idx == -1){
+    //no message found with the required type
+    //release lock 
+    release(&msgqlock);
+    return -1;
+  }
+
+  m = &q->msg[idx]; 
+  int copylen = m->len < bufflen ? m->len : bufflen; //length to be copied to user buffer
+
+  //copy data from kernel buffer(m->data) to user buffer(msgptr)
+  if(copyout(myproc()->pagetable, msgptr, m->data, copylen) < 0){
+    release(&msgqlock);
+    return -1; 
+  }
+
+  m->valid = 0; //mark message as invalid
+  q->count--; //decrement no.of messages in queue
+
+
+  //release lock 
+  release(&msgqlock);
+  return copylen;
 }
