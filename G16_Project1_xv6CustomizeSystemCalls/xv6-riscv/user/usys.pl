@@ -50,3 +50,6 @@ entry("uptime");
 entry("msgget");
 entry("sendmsg");
 entry("recvmsg");
+entry("shmget");
+entry("shmat");
+entry("shmdt");

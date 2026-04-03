@@ -22,6 +22,7 @@ main()
     procinit();      // process table
 
     msginit();       // message queues
+    shminit();       // shared memory segments
 
     trapinit();      // trap vectors
     trapinithart();  // install kernel trap vector

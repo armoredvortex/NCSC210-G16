@@ -387,3 +387,159 @@ sys_recvmsg(void){
   release(&msgqlock);
   return copylen;
 }
+
+// ---- Shared Memory System Calls ----
+
+#include "shm.h"
+
+extern struct shmseg shmtable[MAX_SHM];
+extern struct spinlock shmlock;
+
+// shmget(key, size) - create or get a shared memory segment
+uint64
+sys_shmget(void)
+{
+  int key, size;
+  argint(0, &key);
+  argint(1, &size);
+
+  if(size <= 0 || size > MAX_SHM_SIZE)
+    return -1;
+
+  int npages = (size + PGSIZE - 1) / PGSIZE;
+
+  acquire(&shmlock);
+
+  // 1. Check if segment with key already exists
+  for(int i = 0; i < MAX_SHM; i++){
+    if(shmtable[i].used && shmtable[i].key == key){
+      release(&shmlock);
+      return i;
+    }
+  }
+
+  // 2. Allocate a new segment
+  for(int i = 0; i < MAX_SHM; i++){
+    if(!shmtable[i].used){
+      shmtable[i].used = 1;
+      shmtable[i].key = key;
+      shmtable[i].size = size;
+      shmtable[i].npages = npages;
+      shmtable[i].refcount = 0;
+
+      // Allocate physical pages
+      int j;
+      for(j = 0; j < npages; j++){
+        void *mem = kalloc();
+        if(mem == 0){
+          // Free already allocated pages on failure
+          for(int k = 0; k < j; k++)
+            kfree((void*)shmtable[i].pa[k]);
+          shmtable[i].used = 0;
+          release(&shmlock);
+          return -1;
+        }
+        memset(mem, 0, PGSIZE);
+        shmtable[i].pa[j] = (uint64)mem;
+      }
+
+      release(&shmlock);
+      return i;
+    }
+  }
+
+  release(&shmlock);
+  return -1;  // no free slot
+}
+
+// shmat(id) - attach shared memory segment to process address space
+uint64
+sys_shmat(void)
+{
+  int id;
+  argint(0, &id);
+
+  if(id < 0 || id >= MAX_SHM)
+    return -1;
+
+  struct proc *p = myproc();
+
+  acquire(&shmlock);
+
+  if(!shmtable[id].used){
+    release(&shmlock);
+    return -1;
+  }
+
+  // Check if already attached
+  if(p->shm_va[id] != 0){
+    release(&shmlock);
+    return p->shm_va[id];  // return existing mapping
+  }
+
+  // Map at a fixed virtual address below TRAPFRAME
+  // Each segment gets its own region: TRAPFRAME - (id+1)*MAX_SHM_SIZE
+  uint64 va = TRAPFRAME - (uint64)(id + 1) * MAX_SHM_SIZE;
+
+  for(int j = 0; j < shmtable[id].npages; j++){
+    if(mappages(p->pagetable, va + j * PGSIZE, PGSIZE,
+                shmtable[id].pa[j], PTE_R | PTE_W | PTE_U) != 0){
+      // Undo mappings on failure
+      for(int k = 0; k < j; k++){
+        uvmunmap(p->pagetable, va + k * PGSIZE, 1, 0);
+      }
+      release(&shmlock);
+      return -1;
+    }
+  }
+
+  p->shm_va[id] = va;
+  shmtable[id].refcount++;
+
+  release(&shmlock);
+  return va;
+}
+
+// shmdt(id) - detach shared memory segment from process address space
+uint64
+sys_shmdt(void)
+{
+  int id;
+  argint(0, &id);
+
+  if(id < 0 || id >= MAX_SHM)
+    return -1;
+
+  struct proc *p = myproc();
+
+  acquire(&shmlock);
+
+  if(!shmtable[id].used || p->shm_va[id] == 0){
+    release(&shmlock);
+    return -1;
+  }
+
+  uint64 va = p->shm_va[id];
+
+  // Unmap pages (do_free=0 because physical pages are shared)
+  uvmunmap(p->pagetable, va, shmtable[id].npages, 0);
+  p->shm_va[id] = 0;
+
+  shmtable[id].refcount--;
+
+  // If no one is attached anymore, free the physical pages and the slot
+  if(shmtable[id].refcount <= 0){
+    for(int j = 0; j < shmtable[id].npages; j++){
+      kfree((void*)shmtable[id].pa[j]);
+      shmtable[id].pa[j] = 0;
+    }
+    shmtable[id].used = 0;
+    shmtable[id].key = 0;
+    shmtable[id].size = 0;
+    shmtable[id].npages = 0;
+    shmtable[id].refcount = 0;
+  }
+
+  release(&shmlock);
+  return 0;
+}

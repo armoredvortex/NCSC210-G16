@@ -28,3 +28,6 @@
 #define SYS_msgget 27 //for getting/creating a message queue
 #define SYS_sendmsg 28 //for sending a message 
 #define SYS_recvmsg 29 //for receiving a message
+#define SYS_shmget 30  
+#define SYS_shmat  31  
+#define SYS_shmdt  32  
