@@ -157,11 +157,29 @@
         - on process exit (`freeproc`), any attached segments are auto-detached
 - **Added By**: Ranish Garg
 
--  **Demo Program**: shmdemo
+- **Demo Program**: shmdemo
+
 ## How To Run Demo
 1. cd xv6-riscv
 2. make clean && make qemu
 3. Run in xv6 shell: shmdemo
+
+## Feature 5
+- Feature: waitpid for targeted child wait
+- Syscall: waitpid(int pid, int *status)
+- Description: Allows a parent process to wait for a specific child PID instead of waiting for any child.
+- The implementation reuses xv6 wait-lock discipline and process table scan style used by existing wait logic.
+- waitpid validates that the requested PID belongs to one of the caller's children.
+- If the target child has already exited, waitpid returns immediately with that child's PID and copies exit status to user memory.
+- If the target child is still running, the parent sleeps and resumes when child state changes.
+- Returns -1 for invalid PID, non-child PID, or copyout failure.
+- Added By: Raj Priyadarshi [24JE0679]
+- Demo Program: waitpiddemo
+
+## How To Run waitpid Demo
+1. cd xv6-riscv
+2. make clean && make qemu
+3. Run in xv6 shell: waitpiddemo
 
         
     
