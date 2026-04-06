@@ -22,6 +22,7 @@ int mkdir(const char*);
 int chdir(const char*);
 int dup(int);
 int getpid(void);
+int getppid(void);
 int mutex_create(void);
 int mutex_lock(int);
 int mutex_unlock(int);

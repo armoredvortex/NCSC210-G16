@@ -37,6 +37,20 @@ sys_getpid(void)
 }
 
 uint64
+sys_getppid(void)
+{
+  int ppid = 0;
+  struct proc *p = myproc();
+
+  acquire(&wait_lock);
+  if(p->parent)
+    ppid = p->parent->pid;
+  release(&wait_lock);
+
+  return ppid;
+}
+
+uint64
 sys_fork(void)
 {
   return kfork();
