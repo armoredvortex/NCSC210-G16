@@ -33,3 +33,8 @@
 #define SYS_shmdt  32  
 #define SYS_waitpid 33
 #define SYS_getppid 34
+#define SYS_forkn 35
+#define SYS_thread_create 36
+#define SYS_mutex_trylock 37
+#define SYS_signal_send 38
+#define SYS_msgcount 39
