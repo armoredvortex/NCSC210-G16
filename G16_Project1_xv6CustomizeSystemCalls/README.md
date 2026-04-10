@@ -45,6 +45,7 @@
 - **Syscalls**:  
     1. msgget(int key)
     2. sendmsg(int quid, int type, char* msg, int msglen)
+    3. recvmsg(int quid, int type, char* buffer, int bufflen)
 - **msgget**
     - ***input params***: 
         - integer key `(eg. msgget(123))`
