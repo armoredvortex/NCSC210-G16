@@ -181,6 +181,20 @@
 2. make clean && make qemu
 3. Run in xv6 shell: waitpiddemo
 
+## Feature 6
+- Feature: getppid for parent PID lookup
+- Syscall: getppid(void)
+- Description: Returns the parent process ID of the calling process.
+- The implementation reads the process parent pointer under wait-lock protection and returns parent pid.
+- For processes without a parent pointer (for example early/root contexts), syscall returns 0.
+- Added By: Raj Priyadarshi [24JE0679]
+- Demo Program: getppiddemo
+
+## How To Run getppid Demo
+1. cd xv6-riscv
+2. make clean && make qemu
+3. Run in xv6 shell: getppiddemo
+
         
     
 
