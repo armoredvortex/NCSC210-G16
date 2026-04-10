@@ -53,3 +53,4 @@ entry("recvmsg");
 entry("shmget");
 entry("shmat");
 entry("shmdt");
+entry("waitpid");

@@ -151,6 +151,7 @@ UPROGS=\
 	$U/_freezethawdemo\
 	$U/_msgdemo \
 	$U/_shmdemo \
+	$U/_waitpiddemo \
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

@@ -51,6 +51,17 @@ sys_wait(void)
 }
 
 uint64
+sys_waitpid(void)
+{
+  int pid;
+  uint64 status_addr;
+
+  argint(0, &pid);
+  argaddr(1, &status_addr);
+  return kwaitpid(pid, status_addr);
+}
+
+uint64
 sys_sbrk(void)
 {
   uint64 addr;
