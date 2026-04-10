@@ -774,6 +774,25 @@ ksignal_send(int pid, int sig)
   return -1;
 }
 
+// Return target process state enum value by pid.
+// Returns -1 if pid does not exist.
+int
+kgetprocstate(int pid)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid && p->state != UNUSED){
+      int state = p->state;
+      release(&p->lock);
+      return state;
+    }
+    release(&p->lock);
+  }
+  return -1;
+}
+
 int
 kfreeze(int pid)
 {

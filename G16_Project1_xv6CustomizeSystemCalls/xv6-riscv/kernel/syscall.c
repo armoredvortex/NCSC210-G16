@@ -119,6 +119,8 @@ extern uint64 sys_thread_create(void);
 extern uint64 sys_mutex_trylock(void);
 extern uint64 sys_signal_send(void);
 extern uint64 sys_msgcount(void);
+extern uint64 sys_mutex_owner(void);
+extern uint64 sys_getprocstate(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -162,6 +164,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mutex_trylock] sys_mutex_trylock,
 [SYS_signal_send]  sys_signal_send,
 [SYS_msgcount]     sys_msgcount,
+[SYS_mutex_owner]  sys_mutex_owner,
+[SYS_getprocstate] sys_getprocstate,
 };
 
 void
