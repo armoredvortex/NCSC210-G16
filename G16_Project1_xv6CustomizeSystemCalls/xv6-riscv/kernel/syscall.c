@@ -109,6 +109,9 @@ extern uint64 sys_thaw(void);
 extern uint64 sys_msgget(void);
 extern uint64 sys_sendmsg(void);
 extern uint64 sys_recvmsg(void);
+extern uint64 sys_shmget(void);
+extern uint64 sys_shmat(void);
+extern uint64 sys_shmdt(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -142,6 +145,9 @@ static uint64 (*syscalls[])(void) = {
 [SYS_msgget]       sys_msgget,
 [SYS_sendmsg]      sys_sendmsg,
 [SYS_recvmsg]      sys_recvmsg,
+[SYS_shmget]       sys_shmget,
+[SYS_shmat]        sys_shmat,
+[SYS_shmdt]        sys_shmdt,
 };
 
 void

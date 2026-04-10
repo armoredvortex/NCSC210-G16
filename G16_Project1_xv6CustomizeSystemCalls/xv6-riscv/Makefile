@@ -30,6 +30,7 @@ OBJS = \
   $K/plic.o \
   $K/virtio_disk.o \
   $K/msg.o \
+  $K/shm.o \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -149,6 +150,7 @@ UPROGS=\
 	$U/_mutexdemo\
 	$U/_freezethawdemo\
 	$U/_msgdemo \
+	$U/_shmdemo \
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
