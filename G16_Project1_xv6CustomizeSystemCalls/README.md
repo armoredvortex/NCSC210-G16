@@ -110,6 +110,59 @@
 2. make clean && make qemu
 3. Run in xv6 shell: msgdemo
 
+## Feature 4
+- **Feature**: Shared memory based IPC system
+- **Syscalls**:
+    1. shmget(int key, int size)
+    2. shmat(int id)
+    3. shmdt(int id)
+- **shmget**
+    - ***input params***:
+        - integer key (e.g. `shmget(42, 4096)`)
+        - integer size in bytes (max 16384 bytes / 4 pages)
+    - ***returns***:
+        - success: shared memory segment id `int`
+        - failure: `-1`
+    - ***description***:
+        shmget allows processes to get/create a shared memory segment with an integer key. if a segment with the given key already exists, it returns the existing segment id. otherwise allocates physical pages and assigns a new segment entry in the kernel.
+    - ***implementation details***:
+        - a fixed-size array `shmtable[8]` of `struct shmseg` is maintained in kernel space
+        - each entry tracks: `used`, `key`, `size`, `npages`, physical addresses `pa[]`, and `refcount`
+        - spinlock `shmlock` is used to prevent race conditions
+        - physical pages are allocated with `kalloc()` and zeroed on creation
+- **shmat**
+    - ***input params***:
+        - segment id `int`
+    - ***returns***:
+        - success: virtual address `char*` where the segment is mapped
+        - failure: `-1`
+    - ***description***:
+        shmat attaches a shared memory segment to the calling process's virtual address space. the segment is mapped just below TRAPFRAME at a fixed address based on the segment id, so multiple processes map the same physical pages to the same virtual address.
+    - ***implementation details***:
+        - uses `mappages()` to map the segment's physical pages into the process's page table with `PTE_R | PTE_W | PTE_U` permissions
+        - each segment is mapped at `TRAPFRAME - (id+1) * MAX_SHM_SIZE` to avoid collisions
+        - increments `refcount` on successful attach
+        - if already attached, returns the existing virtual address
+- **shmdt**
+    - ***input params***:
+        - segment id `int`
+    - ***returns***:
+        - success: `0`
+        - failure: `-1`
+    - ***description***:
+        shmdt detaches a shared memory segment from the calling process. the virtual address mappings are removed but the physical pages are not freed until all processes have detached (refcount reaches 0).
+    - ***implementation details***:
+        - uses `uvmunmap()` with `do_free=0` to unmap without freeing physical pages
+        - decrements `refcount`; when refcount reaches 0, physical pages are freed with `kfree()` and the segment slot is released
+        - on process exit (`freeproc`), any attached segments are auto-detached
+- **Added By**: Ranish Garg
+
+-  **Demo Program**: shmdemo
+## How To Run Demo
+1. cd xv6-riscv
+2. make clean && make qemu
+3. Run in xv6 shell: shmdemo
+
         
     
 

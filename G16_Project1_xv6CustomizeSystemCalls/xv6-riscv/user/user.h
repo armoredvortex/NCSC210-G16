@@ -32,6 +32,9 @@ int uptime(void);
 int msgget(int key);    // for getting/creating a message queue
 int sendmsg(int quid, int type, char* msg, int msglen); // for sending a message
 int recvmsg(int quid, int type, char* buffer, int bufflen); // for receiving a message
+int shmget(int key, int size);   // shared memory: get/create segment
+char* shmat(int id);             // shared memory: attach segment
+int shmdt(int id);               // shared memory: detach segment
 
 
 // ulib.c

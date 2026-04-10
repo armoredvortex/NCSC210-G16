@@ -5,6 +5,10 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "shm.h"
+
+extern struct shmseg shmtable[MAX_SHM];
+extern struct spinlock shmlock;
 
 struct cpu cpus[NCPU];
 
@@ -126,6 +130,10 @@ found:
   p->state = USED;
   p->frozen = 0;
 
+  // Zero shared memory mappings
+  for(int i = 0; i < MAX_SHM; i++)
+    p->shm_va[i] = 0;
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -156,6 +164,28 @@ found:
 static void
 freeproc(struct proc *p)
 {
+  // Auto-detach any shared memory segments
+  acquire(&shmlock);
+  for(int i = 0; i < MAX_SHM; i++){
+    if(p->shm_va[i] != 0 && shmtable[i].used){
+      uvmunmap(p->pagetable, p->shm_va[i], shmtable[i].npages, 0);
+      p->shm_va[i] = 0;
+      shmtable[i].refcount--;
+      if(shmtable[i].refcount <= 0){
+        for(int j = 0; j < shmtable[i].npages; j++){
+          kfree((void*)shmtable[i].pa[j]);
+          shmtable[i].pa[j] = 0;
+        }
+        shmtable[i].used = 0;
+        shmtable[i].key = 0;
+        shmtable[i].size = 0;
+        shmtable[i].npages = 0;
+        shmtable[i].refcount = 0;
+      }
+    }
+  }
+  release(&shmlock);
+
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
