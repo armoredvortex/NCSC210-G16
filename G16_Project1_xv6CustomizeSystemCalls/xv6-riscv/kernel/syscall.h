@@ -32,3 +32,4 @@
 #define SYS_shmat  31  
 #define SYS_shmdt  32  
 #define SYS_waitpid 33
+#define SYS_getppid 34

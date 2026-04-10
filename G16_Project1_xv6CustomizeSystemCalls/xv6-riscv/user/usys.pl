@@ -39,6 +39,7 @@ entry("mkdir");
 entry("chdir");
 entry("dup");
 entry("getpid");
+entry("getppid");
 entry("mutex_create");
 entry("mutex_lock");
 entry("mutex_unlock");
