@@ -118,6 +118,11 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
+$U/_advdemo: $U/advancedsysdemo.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $U/_advdemo $U/advancedsysdemo.o $(ULIB)
+	$(OBJDUMP) -S $U/_advdemo > $U/advdemo.asm
+	$(OBJDUMP) -t $U/_advdemo | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/advdemo.sym
+
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc -Wno-unknown-attributes -I. -o mkfs/mkfs mkfs/mkfs.c
 
@@ -153,7 +158,7 @@ UPROGS=\
 	$U/_shmdemo \
 	$U/_waitpiddemo \
 	$U/_getppiddemo \
-	$U/_advancedsysdemo \
+	$U/_advdemo \
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
