@@ -244,10 +244,78 @@
 3. Run in xv6 shell: `advancedsysdemo`
 
 ### Screenshot Attachment
-- Attach your execution screenshot at: `screenshots/advancedsysdemo.png`
+- Attach your execution screenshot at: `screenshots/sys2demo.png`
 - The documentation reference image tag:
 
-![Advanced Syscall Demo Output](screenshots/advancedsysdemo.png)
+![Advanced Syscall Demo Output](screenshots/sys2demo.png)
+
+### Feature 12
+- Feature: Mutex ownership introspection
+- Syscall: mutex_owner(int id)
+- Description: Returns lock owner pid for a valid mutex id.
+- Return values:
+    - >0: pid of current owner
+    - 0: mutex exists but is currently unlocked
+    - -1: invalid mutex id or unused slot
+- Added By: Rahul Joshi [24JE0678]
+- Demo Program: sys2demo
+
+### Feature 13
+- Feature: Process state introspection
+- Syscall: getprocstate(int pid)
+- Description: Returns internal xv6 process state for a given pid.
+- State values:
+    - 0 UNUSED
+    - 1 USED
+    - 2 SLEEPING
+    - 3 RUNNABLE
+    - 4 RUNNING
+    - 5 ZOMBIE
+    - -1 for invalid/non-existing pid
+- Added By: Rahul Joshi [24JE0678]
+- Demo Program: sys2demo
+
+### Analysis of Existing Design for Feature 12 and Feature 13
+- Syscall dispatch is routed through kernel/syscall.h and kernel/syscall.c.
+- User entry stubs are generated from user/usys.pl and declared in user/user.h.
+- Process state is stored in struct proc and protected using per-process locks.
+- Kernel mutex entries are stored in a fixed table in kernel/sysproc.c and synchronized with wait_lock.
+- Based on this architecture:
+    - mutex_owner reads the mutex table and returns current owner information.
+    - getprocstate scans process table safely and returns process state enum.
+
+## How To Run Feature 12 and Feature 13 Demo
+1. cd xv6-riscv
+2. make clean && make qemu
+3. Run in xv6 shell: sys2demo
+
+## Screenshot Attachment
+- Attach screenshot at: screenshots/sys2demo.png
+
+![sys2demo Output](screenshots/sys2demo.png)
+
+## Execution Screenshots (Available)
+
+### Feature 1 - mutexdemo
+![mutexdemo Output](screenshots/mutexdemo.png)
+
+### Feature 2 - freezethawdemo
+![freezethawdemo Output](screenshots/freezethawdemo.png)
+
+### Feature 3 - msgdemo
+![msgdemo Output](screenshots/msgdemo.png)
+
+### Feature 4 - shmdemo
+![shmdemo Output](screenshots/shmdemo.png)
+
+### Feature 5 - waitpid demo
+![waitpid Output](screenshots/waitpid_demo.jpeg)
+
+### Feature 6 - getppid demo
+![getppid Output](screenshots/getppid_demo.jpeg)
+
+### Feature 12 and 13 - sys2demo
+![sys2demo Output](screenshots/sys2demo.png)
 
         
     
