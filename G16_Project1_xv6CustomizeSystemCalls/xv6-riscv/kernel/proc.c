@@ -337,6 +337,68 @@ kfork(void)
   return pid;
 }
 
+// Create up to n children from the caller and return the count created.
+int
+kforkn(int n)
+{
+  int created = 0;
+
+  for(int i = 0; i < n; i++){
+    if(kfork() < 0)
+      break;
+    created++;
+  }
+
+  return created;
+}
+
+// Create a process-backed thread entry that starts execution at fn(arg).
+int
+kthread_create(uint64 fn, uint64 arg)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  if(fn == 0)
+    return -1;
+
+  if((np = allocproc()) == 0)
+    return -1;
+
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+  np->sz = p->sz;
+
+  *(np->trapframe) = *(p->trapframe);
+  np->trapframe->epc = fn;
+  np->trapframe->a0 = arg;
+  np->trapframe->ra = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+  release(&np->lock);
+
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+
+  return pid;
+}
+
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
 void
@@ -693,6 +755,22 @@ kkill(int pid)
     }
     release(&p->lock);
   }
+  return -1;
+}
+
+// Basic signal delivery API:
+// 1 => terminate (like kill)
+// 2 => stop/freeze
+// 3 => continue/thaw
+int
+ksignal_send(int pid, int sig)
+{
+  if(sig == 1)
+    return kkill(pid);
+  if(sig == 2)
+    return kfreeze(pid);
+  if(sig == 3)
+    return kthaw(pid);
   return -1;
 }
 

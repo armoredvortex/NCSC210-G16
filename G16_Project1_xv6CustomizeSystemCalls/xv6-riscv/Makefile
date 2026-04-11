@@ -153,6 +153,7 @@ UPROGS=\
 	$U/_shmdemo \
 	$U/_waitpiddemo \
 	$U/_getppiddemo \
+	$U/_advancedsysdemo \
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

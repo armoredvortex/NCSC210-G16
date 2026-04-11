@@ -195,6 +195,60 @@
 2. make clean && make qemu
 3. Run in xv6 shell: getppiddemo
 
+## Additional Analysis and Functionalities Added (April 2026)
+
+### Analysis of Existing Design
+- Existing syscall dispatch was already extended in `kernel/syscall.h` and `kernel/syscall.c` for mutex, freeze/thaw, message queue IPC, shared memory IPC, waitpid, and getppid.
+- Process-level state extensions (`frozen`, shared memory bookkeeping) are stored in `struct proc` and handled in `kernel/proc.c` lifecycle paths.
+- IPC primitives are backed by global kernel tables guarded by spinlocks (`msgqlock`, `shmlock`), and user access is mediated by copyin/copyout.
+- Synchronization support existed with blocking lock and unlock, but lacked non-blocking acquisition.
+- Signal-like behavior existed implicitly through `kill`, `freeze`, and `thaw`, but without a unified signal interface.
+
+### New Feature 7
+- Feature: Batch process creation
+- Syscall: `forkn(int n)`
+- Description: Creates up to `n` child processes in one syscall and returns number created to the parent.
+- Category: Process creation
+
+### New Feature 8
+- Feature: Thread-style start function creation
+- Syscall: `thread_create(void *start, void *arg)`
+- Description: Creates a process-backed execution context that starts from `start(arg)` directly in user mode.
+- Category: Threads
+
+### New Feature 9
+- Feature: Non-blocking mutex acquisition
+- Syscall: `mutex_trylock(int id)`
+- Description: Attempts to acquire a mutex immediately and returns `-1` if already held, avoiding sleep/block behavior.
+- Category: Locks
+
+### New Feature 10
+- Feature: Unified basic signal dispatch
+- Syscall: `signal_send(int pid, int sig)`
+- Description: Adds one signal entry point for `SIG_TERM(1)`, `SIG_STOP(2)`, `SIG_CONT(3)` mapped to kill/freeze/thaw semantics.
+- Category: Signals
+
+### New Feature 11
+- Feature: Message queue depth query
+- Syscall: `msgcount(int qid)`
+- Description: Returns the current number of pending messages in a queue.
+- Category: IPC
+
+### New Demo Program
+- Program: `advancedsysdemo`
+- Demonstrates: `forkn`, `thread_create`, `mutex_trylock`, `signal_send`, and `msgcount` in a single run.
+
+### How To Run New Demo
+1. `cd xv6-riscv`
+2. `make clean && make qemu`
+3. Run in xv6 shell: `advancedsysdemo`
+
+### Screenshot Attachment
+- Attach your execution screenshot at: `screenshots/advancedsysdemo.png`
+- The documentation reference image tag:
+
+![Advanced Syscall Demo Output](screenshots/advancedsysdemo.png)
+
         
     
 

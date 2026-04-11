@@ -57,6 +57,29 @@ sys_fork(void)
 }
 
 uint64
+sys_forkn(void)
+{
+  int n;
+
+  argint(0, &n);
+  if(n <= 0)
+    return -1;
+  return kforkn(n);
+}
+
+uint64
+sys_thread_create(void)
+{
+  uint64 fn;
+  uint64 arg;
+
+  argaddr(0, &fn);
+  argaddr(1, &arg);
+
+  return kthread_create(fn, arg);
+}
+
+uint64
 sys_wait(void)
 {
   uint64 p;
@@ -231,6 +254,32 @@ sys_mutex_unlock(void)
 }
 
 uint64
+sys_mutex_trylock(void)
+{
+  int id;
+  struct proc *p;
+
+  argint(0, &id);
+  if(id < 0 || id >= NKMUTEX)
+    return -1;
+
+  p = myproc();
+  acquire(&wait_lock);
+  if(kmutex_table[id].used == 0) {
+    release(&wait_lock);
+    return -1;
+  }
+  if(kmutex_table[id].locked == 0) {
+    kmutex_table[id].locked = 1;
+    kmutex_table[id].owner_pid = p->pid;
+    release(&wait_lock);
+    return 0;
+  }
+  release(&wait_lock);
+  return -1;
+}
+
+uint64
 sys_freeze(void)
 {
   int pid;
@@ -246,6 +295,18 @@ sys_thaw(void)
 
   argint(0, &pid);
   return kthaw(pid);
+}
+
+uint64
+sys_signal_send(void)
+{
+  int pid;
+  int sig;
+
+  argint(0, &pid);
+  argint(1, &sig);
+
+  return ksignal_send(pid, sig);
 }
 
 uint64  
@@ -411,6 +472,24 @@ sys_recvmsg(void){
   //release lock 
   release(&msgqlock);
   return copylen;
+}
+
+uint64
+sys_msgcount(void)
+{
+  int quid;
+
+  argint(0, &quid);
+
+  acquire(&msgqlock);
+  if(quid < 0 || quid >= MAX_Q || !msgq[quid].used){
+    release(&msgqlock);
+    return -1;
+  }
+
+  int count = msgq[quid].count;
+  release(&msgqlock);
+  return count;
 }
 
 // ---- Shared Memory System Calls ----

@@ -55,3 +55,8 @@ entry("shmget");
 entry("shmat");
 entry("shmdt");
 entry("waitpid");
+entry("forkn");
+entry("thread_create");
+entry("mutex_trylock");
+entry("signal_send");
+entry("msgcount");
