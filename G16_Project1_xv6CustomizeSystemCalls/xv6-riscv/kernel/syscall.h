@@ -38,3 +38,5 @@
 #define SYS_mutex_trylock 37
 #define SYS_signal_send 38
 #define SYS_msgcount 39
+#define SYS_mutex_owner 40
+#define SYS_getprocstate 41

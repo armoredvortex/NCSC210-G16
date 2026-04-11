@@ -280,6 +280,28 @@ sys_mutex_trylock(void)
 }
 
 uint64
+sys_mutex_owner(void)
+{
+  int id;
+
+  argint(0, &id);
+  if(id < 0 || id >= NKMUTEX)
+    return -1;
+
+  acquire(&wait_lock);
+  if(kmutex_table[id].used == 0){
+    release(&wait_lock);
+    return -1;
+  }
+
+  int owner = kmutex_table[id].owner_pid;
+  if(kmutex_table[id].locked == 0)
+    owner = 0;
+  release(&wait_lock);
+  return owner;
+}
+
+uint64
 sys_freeze(void)
 {
   int pid;
@@ -307,6 +329,18 @@ sys_signal_send(void)
   argint(1, &sig);
 
   return ksignal_send(pid, sig);
+}
+
+uint64
+sys_getprocstate(void)
+{
+  int pid;
+
+  argint(0, &pid);
+  if(pid <= 0)
+    return -1;
+
+  return kgetprocstate(pid);
 }
 
 uint64  

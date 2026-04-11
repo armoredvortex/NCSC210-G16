@@ -58,5 +58,7 @@ entry("waitpid");
 entry("forkn");
 entry("thread_create");
 entry("mutex_trylock");
+entry("mutex_owner");
 entry("signal_send");
+entry("getprocstate");
 entry("msgcount");

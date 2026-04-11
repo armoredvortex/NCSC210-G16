@@ -91,6 +91,7 @@ int             kthaw(int);
 int             kforkn(int);
 int             kthread_create(uint64, uint64);
 int             ksignal_send(int, int);
+int             kgetprocstate(int);
 int             killed(struct proc*);
 void            setkilled(struct proc*);
 struct cpu*     mycpu(void);
