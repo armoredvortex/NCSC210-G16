@@ -248,7 +248,7 @@
 - Attach your execution screenshot at: `screenshots/advancedsysdemo.png`
 - The documentation reference image tag:
 
-![Advanced Syscall Demo Output](screenshots/advancedsysdemo.png)
+![Advanced Syscall Demo Output](screenshots/advancedsysdemo.jpeg)
 
 ### Feature 12
 - Feature: Mutex ownership introspection
