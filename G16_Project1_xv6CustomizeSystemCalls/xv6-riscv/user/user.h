@@ -23,20 +23,31 @@ int chdir(const char*);
 int dup(int);
 int getpid(void);
 int getppid(void);
+int forkn(int);
+int thread_create(void*, void*);
 int mutex_create(void);
 int mutex_lock(int);
 int mutex_unlock(int);
+int mutex_trylock(int);
+int mutex_owner(int);
 int freeze(int);
 int thaw(int);
+int signal_send(int, int);
+int getprocstate(int);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
 int msgget(int key);    // for getting/creating a message queue
 int sendmsg(int quid, int type, char* msg, int msglen); // for sending a message
 int recvmsg(int quid, int type, char* buffer, int bufflen); // for receiving a message
+int msgcount(int quid); // returns number of queued messages
 int shmget(int key, int size);   // shared memory: get/create segment
 char* shmat(int id);             // shared memory: attach segment
 int shmdt(int id);               // shared memory: detach segment
+
+#define SIG_TERM 1
+#define SIG_STOP 2
+#define SIG_CONT 3
 
 
 // ulib.c

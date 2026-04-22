@@ -1,0 +1,7 @@
+filesrv
+*.o
+*.out
+
+data/
+operations.log
+test

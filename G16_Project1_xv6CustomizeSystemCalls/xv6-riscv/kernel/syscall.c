@@ -114,6 +114,13 @@ extern uint64 sys_shmget(void);
 extern uint64 sys_shmat(void);
 extern uint64 sys_shmdt(void);
 extern uint64 sys_waitpid(void);
+extern uint64 sys_forkn(void);
+extern uint64 sys_thread_create(void);
+extern uint64 sys_mutex_trylock(void);
+extern uint64 sys_signal_send(void);
+extern uint64 sys_msgcount(void);
+extern uint64 sys_mutex_owner(void);
+extern uint64 sys_getprocstate(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -152,6 +159,13 @@ static uint64 (*syscalls[])(void) = {
 [SYS_shmat]        sys_shmat,
 [SYS_shmdt]        sys_shmdt,
 [SYS_waitpid]      sys_waitpid,
+[SYS_forkn]        sys_forkn,
+[SYS_thread_create] sys_thread_create,
+[SYS_mutex_trylock] sys_mutex_trylock,
+[SYS_signal_send]  sys_signal_send,
+[SYS_msgcount]     sys_msgcount,
+[SYS_mutex_owner]  sys_mutex_owner,
+[SYS_getprocstate] sys_getprocstate,
 };
 
 void
