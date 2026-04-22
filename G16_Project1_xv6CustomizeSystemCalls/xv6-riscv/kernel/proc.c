@@ -342,10 +342,14 @@ int
 kforkn(int n)
 {
   int created = 0;
+  int rc;
 
   for(int i = 0; i < n; i++){
-    if(kfork() < 0)
+    rc = kfork();
+    if(rc < 0)
       break;
+    if(rc == 0)
+      return 0;
     created++;
   }
 
@@ -360,7 +364,8 @@ kthread_create(uint64 fn, uint64 arg)
   struct proc *np;
   struct proc *p = myproc();
 
-  if(fn == 0)
+  // User text is linked starting at VA 0 in xv6, so fn==0 can be valid.
+  if(fn >= p->sz)
     return -1;
 
   if((np = allocproc()) == 0)

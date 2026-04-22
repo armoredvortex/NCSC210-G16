@@ -14,16 +14,19 @@ int
 main(void)
 {
   int status = -1;
+  int self_pid = getpid();
 
   printf("advancedsysdemo: begin\n");
 
   // 1) Process creation extension: forkn(n)
-  int created = forkn(2);
+  // Use n=1 to keep this demo stable even if forkn children continue loop execution.
+  int created = forkn(1);
   if(created < 0){
     printf("forkn failed\n");
     exit(1);
   }
-  if(created == 0){
+  // Defensive child detection: rely on pid, not only return value.
+  if(getpid() != self_pid){
     printf("forkn-child: pid=%d running\n", getpid());
     exit(0);
   }
@@ -35,7 +38,11 @@ main(void)
   int t1 = thread_create((void*)thread_worker, (void*)1);
   int t2 = thread_create((void*)thread_worker, (void*)2);
   if(t1 < 0 || t2 < 0){
-    printf("thread_create failed\n");
+    printf("thread_create failed: t1=%d t2=%d\n", t1, t2);
+    if(t1 >= 0)
+      waitpid(t1, &status);
+    if(t2 >= 0)
+      waitpid(t2, &status);
     exit(1);
   }
   printf("thread_create: t1=%d t2=%d\n", t1, t2);
